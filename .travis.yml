@@ -1,0 +1,10 @@
+language: go
+
+go:
+    - 1.7
+
+script:
+    - go test -v -bench=. github.com/lovedboy/gortcp/src
+
+after_success:
+    - sh ./deploy.sh
