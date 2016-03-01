@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"time"
 )
 
 type ConnectStruct struct {
@@ -251,7 +252,10 @@ func Connect(addr1 string) {
 	for {
 		conn1, err := net.Dial("tcp", addr1)
 		if err != nil {
-			fatal("remote dial failed: %v", err)
+			//just sleep
+			fmt.Println("conncet addr1 error")
+			time.Sleep(20 * time.Second)
+			continue
 		}
 		hostname, err := os.Hostname()
 		if err != nil {
@@ -265,12 +269,13 @@ func Connect(addr1 string) {
 		if err != nil {
 			fmt.Println("remote read error")
 			conn1.Close()
-			break
+			continue
 		}
 		addr2 := string(buf[:n])
 		conn2, err := net.Dial("tcp", addr2)
 		if err != nil {
-			fatal("remote dial failed: %v", err)
+			fmt.Println("remote dial failed: %v", err)
+			continue
 		}
 		finish := make(chan bool, 1)
 		forward(conn1, conn2, finish)
