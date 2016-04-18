@@ -26,7 +26,7 @@ type MsgChannel struct {
 var DEBUG bool = true
 
 var ConnMap map[string]*ConnectStruct
-var SocketChannel chan string
+var SocketChannel string
 var ReadMsgChannel1 chan MsgChannel
 var ReadMsgChannel2 chan MsgChannel
 
@@ -52,7 +52,7 @@ func main() {
 		addr2 := os.Args[3]
 		addr3 := os.Args[4]
 		ConnMap = make(map[string]*ConnectStruct)
-		SocketChannel = make(chan string)
+		SocketChannel = ""
 		ReadMsgChannel1 = make(chan MsgChannel)
 		ReadMsgChannel2 = make(chan MsgChannel)
 
@@ -146,30 +146,21 @@ func Server2(addr string) {
 
 	for {
 		if DEBUG {
-			fmt.Println("server2 accept a connection before notice me i can.")
-		}
-		id := <-SocketChannel
-		if DEBUG {
-			fmt.Println("receive id:", id)
-		}
-		conn_struct, ok := ConnMap[id]
-		if !ok {
-			fmt.Println("id not exists")
-			continue
-		}
-		if conn_struct.conn2 != nil {
-			fmt.Println("id has a connection.....")
-			continue
-		}
-		if DEBUG {
-			fmt.Println("will accept a connection")
+			fmt.Println("server2 will accept a connection")
 		}
 		conn, err := server.Accept()
 		if err == nil {
 			if DEBUG {
 				fmt.Println(conn.RemoteAddr().String(), "connect server2")
 			}
+			if SocketChannel == "" {
+				conn.Close()
+				fmt.Println("id is null")
+				continue
+			}
+			id := SocketChannel
 			conn_struct, ok := ConnMap[id]
+			SocketChannel = ""
 			if !ok {
 				conn.Close()
 				fmt.Println("id not exists")
@@ -242,7 +233,7 @@ func ConnectConn(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	conn_struct.conn1.Write([]byte(addr))
-	SocketChannel <- id
+	SocketChannel = id
 	fmt.Fprintf(w, "success.\n")
 
 }
