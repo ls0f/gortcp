@@ -1,6 +1,5 @@
 package gortcp
 
-
 import (
 	"os"
 
