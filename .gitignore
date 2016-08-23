@@ -23,5 +23,6 @@ _testmain.go
 *.exe
 *.test
 *.prof
+.idea/*
 
 # Created by .ignore support plugin (hsz.mobi)

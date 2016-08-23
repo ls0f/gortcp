@@ -35,9 +35,10 @@ func (c *Control) print() {
 	if err != nil {
 		logger.Panic(err)
 	}
-	os.Stdout.Write([]byte("#######################\n"))
+	//os.Stdout.Write([]byte("#######################\n"))
 	os.Stdout.Write(rm.content)
-	os.Stdout.Write([]byte("#######################\n"))
+	//os.Stdout.Write([]byte("\n"))
+	//os.Stdout.Write([]byte("#######################\n"))
 }
 
 func (c *Control) matchNode(id string) {

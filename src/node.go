@@ -7,12 +7,12 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/anacrolix/sync"
+	"sync"
 )
 
 type Node struct {
-	n1                net.Conn
-	n2                net.Conn
+	n1                *net.TCPConn
+	n2                *net.TCPConn
 	ConnectTime       time.Time
 	LastHeartBeatTime time.Time
 	sync.Mutex
@@ -23,7 +23,7 @@ func (n *Node) updateLastHeartBeat() {
 	n.LastHeartBeatTime = time.Now()
 }
 
-func (n *Node) setN2(conn net.Conn) {
+func (n *Node) setN2(conn *net.TCPConn) {
 	n.Lock()
 	n.n2 = conn
 	defer n.Lock()

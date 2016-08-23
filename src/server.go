@@ -5,25 +5,31 @@ import (
 	"net"
 	"strconv"
 	"time"
+	"fmt"
+	"errors"
 )
 
 type Server struct {
 	Addr string
 	Auth string
 	Pool *NodeMap
-	wrap *MessageWrap
 }
 
 func (s *Server) Listen() {
 
-	server, err := net.Listen("tcp", s.Addr)
+	addr, err := net.ResolveTCPAddr("tcp", s.Addr)
+	if err != nil{
+		logger.Panic(err)
+	}
+	server, err := net.ListenTCP("tcp4", addr)
 	if err != nil {
 		logger.Error(err.Error())
 	}
+	logger.Infof("[tcp] listen on %v", addr)
 	s.Pool = new(NodeMap)
 	s.Pool.pool = make(map[uint32]*Node)
 	for {
-		conn, err := server.Accept()
+		conn, err := server.AcceptTCP()
 		if err == nil {
 			logger.Debugf("%s connect server", conn.RemoteAddr().String())
 			go s.handlerConn(conn)
@@ -34,67 +40,98 @@ func (s *Server) Listen() {
 }
 
 // send node list info
-func (s *Server) listNode() {
+func (s *Server) listNode( wrap *MessageWrap) {
 	msg := &Message{msgType: listNodeResultMessage, content: s.Pool.Bytes()}
-	s.wrap.SendOneMessage(msg)
+	wrap.SendOneMessage(msg)
 }
 
 func (s *Server) forward(n *Node) {
 	done := make(chan struct{})
 	go func() {
-		io.Copy(n.n2, n.n1)
+		_, err := io.Copy(n.n1, n.n2)
+		logger.Debug(err)
+		//n.n2.CloseWrite()
 		done <- struct{}{}
 	}()
-	io.Copy(n.n1, n.n2)
+	_, err := io.Copy(n.n2, n.n1)
+	//n.n2.CloseRead()
+	logger.Debug(err)
 	<-done
 }
 
-func (s *Server) handler(conn net.Conn) {
-	m, err := s.wrap.ReadOneMessage()
+func (s *Server)handlerClientMessage(node *Node){
+	wrap := &MessageWrap{rw : node.n1}
+	for{
+		m, err:= wrap.ReadOneMessage()
+		if err != nil{
+			return
+		}
+		if node.n2 != nil{
+			w := &MessageWrap{rw: node.n2}
+			w.SendOneMessage(m)
+		}
+
+	}
+}
+
+func (s *Server) writeErrorMessage(wrap *MessageWrap, err error){
+	str := fmt.Sprintf("SERVER ERROR: %s", err.Error())
+	msg := &Message{msgType: errorMessage, content: []byte(str)}
+	wrap.SendOneMessage(msg)
+
+}
+
+func (s *Server) handler(conn *net.TCPConn) {
+	wrap := &MessageWrap{rw: conn}
+	m, err := wrap.ReadOneMessage()
 	if err != nil {
 		return
 	}
 	if m.msgType == connectMessage {
-		id := s.Pool.addNewNode(&Node{
-			n1: conn, n2: nil,
-			ConnectTime: time.Now()})
+		node := &Node{n1: conn, n2: nil, ConnectTime: time.Now()}
+		id := s.Pool.addNewNode(node)
 		defer s.Pool.removeNode(id)
-		done := make(chan bool)
-		<-done
+		//done := make(chan bool)
+		//<-done
+		s.handlerClientMessage(node)
 	} else if m.msgType == authMessage {
 		if string(m.content) != s.Auth {
 			logger.Debugf("auth error.expected:%s, actual:%s", s.Auth, m.content)
 			return
 		}
-		m, err := s.wrap.ReadOneMessage()
+		m, err := wrap.ReadOneMessage()
 		if err != nil {
 			return
 		}
 		if m.msgType == listNodeMessage {
-			s.listNode()
+			s.listNode(wrap)
 			return
-		} else if m.msgType == matchNodeMessage {
+		}
+		if m.msgType == matchNodeMessage {
 			i, err := strconv.ParseUint(string(m.content), 10, 32)
 			if err != nil {
 				logger.Error(err)
+				s.writeErrorMessage(wrap, err)
 				return
 			}
 			node := s.Pool.getNode(uint32(i))
 			if node == nil {
-				logger.Debugf("id:%s is not found in the server", m.content)
+				errStr := fmt.Sprintf("id:%s is not found in the server", m.content)
+				logger.Error(errStr)
+				s.writeErrorMessage(wrap, errors.New(errStr))
 				return
 			}
 			node.n2 = conn
-			s.forward(node)
+			io.Copy(node.n1, node.n2)
+			//s.forward(node)
 			node.n2 = nil
 			return
 		}
 	}
 }
 
-func (s *Server) handlerConn(conn net.Conn) {
+func (s *Server) handlerConn(conn *net.TCPConn) {
 	defer conn.Close()
 	defer logger.Debugf("%s disconnect server", conn.RemoteAddr().String())
-	s.wrap = &MessageWrap{rw: conn}
 	s.handler(conn)
 }

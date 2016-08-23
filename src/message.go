@@ -17,6 +17,7 @@ const (
 	listNodeMessage       = 5
 	listNodeResultMessage = 51
 	matchNodeMessage      = 6
+	errorMessage = 7
 )
 
 type Message struct {
