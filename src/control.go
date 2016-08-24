@@ -32,14 +32,14 @@ func (c *Control) connect() net.Conn {
 
 }
 
-func (c *Control) print() {
+func (c *Control) print(w io.Writer) {
 
 	rm, err := c.wrap.ReadOneMessage()
 	if err != nil {
 		logger.Panic(err)
 	}
 	//os.Stdout.Write([]byte("#######################\n"))
-	os.Stdout.Write(rm.content)
+	w.Write(rm.content)
 	//os.Stdout.Write([]byte("\n"))
 	//os.Stdout.Write([]byte("#######################\n"))
 }
@@ -77,7 +77,7 @@ func (c *Control) ListNode() {
 	if err := c.wrap.SendOneMessage(msg); err != nil {
 		logger.Panic(err)
 	}
-	c.print()
+	c.print(os.Stdout)
 }
 
 func (c *Control) ExecCommand(id, cmd string) {
@@ -87,7 +87,7 @@ func (c *Control) ExecCommand(id, cmd string) {
 	c.auth()
 	c.matchNode(id)
 	c.exec(cmd)
-	c.print()
+	c.print(os.Stdout)
 }
 
 func (c *Control) checkFile(file string) {
@@ -147,5 +147,5 @@ func (c *Control) UploadFile(id, srcPath, dstPath string) {
 	c.auth()
 	c.matchNode(id)
 	go c.upload(srcPath, dstPath)
-	c.print()
+	c.print(os.Stdout)
 }
