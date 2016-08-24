@@ -6,18 +6,23 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 )
 
 const (
-	authMessage           = 1
-	connectMessage        = 2
-	execCmdMessage        = 3
-	execCmdResultMessage  = 31
-	uploadFileMessage     = 4
-	listNodeMessage       = 5
-	listNodeResultMessage = 51
-	matchNodeMessage      = 6
-	errorMessage = 7
+	authMessage            = 1
+	connectMessage         = 2
+	execCmdMessage         = 3
+	execCmdResultMessage   = 31
+	uploadFileMessage      = 4
+	fileInfoMessage        = 41
+	uploadDoneMessage      = 42
+	replyUploadDoneMessage = 43
+	listNodeMessage        = 5
+	listNodeResultMessage  = 51
+	matchNodeMessage       = 6
+	matchOKMessage         = 61
+	errorMessage           = 7
 )
 
 type Message struct {
@@ -28,35 +33,28 @@ type Message struct {
 
 type MessageWrap struct {
 	rw io.ReadWriter
+	sync.Mutex
+	rlock sync.Mutex
 }
 
 func (m *Message) readOneMessage(r io.Reader) (err error) {
 	//read msg type
 	b1 := make([]byte, 1)
-	n, err := r.Read(b1)
+	_, err = io.ReadFull(r, b1)
 	if err != nil {
 		logger.Errorf("read message type error: %s", err.Error())
-		return
-	}
-	if n != len(b1) {
-		err = errors.New("read message type error: unexpectd length")
-		logger.Error(err)
 		return
 	}
 	m.msgType = uint8(b1[0])
 
 	//read length
 	b2 := make([]byte, 4)
-	n, err = r.Read(b2)
+	_, err = io.ReadFull(r, b2)
 	if err != nil {
 		logger.Errorf("read message length error: %s", err.Error())
 		return
 	}
-	if n != len(b2) {
-		err = errors.New("read message length error: unexpectd length")
-		logger.Error(err)
-		return
-	}
+
 	m.length = binary.BigEndian.Uint32(b2)
 
 	//read content
@@ -64,13 +62,9 @@ func (m *Message) readOneMessage(r io.Reader) (err error) {
 		return
 	}
 	m.content = make([]byte, m.length)
-	n, err = r.Read(m.content)
+	_, err = io.ReadFull(r, m.content)
 	if err != nil {
 		logger.Errorf("read message length error: %s", err.Error())
-		return
-	}
-	if n != len(m.content) {
-		err = errors.New("read message length error: unexpectd length")
 		return
 	}
 	return
@@ -91,6 +85,8 @@ func (m *Message) sendOneMessage(w io.Writer) (n int, err error) {
 }
 
 func (wrap *MessageWrap) ReadOneMessage() (m *Message, err error) {
+	wrap.rlock.Lock()
+	defer wrap.rlock.Unlock()
 	m = &Message{}
 	err = m.readOneMessage(wrap.rw)
 	return
@@ -112,6 +108,8 @@ func (wrap *MessageWrap) ReadTheSpecialTypeMessage(msgType uint8) (m *Message, e
 }
 
 func (wrap *MessageWrap) SendOneMessage(m *Message) (err error) {
+	wrap.Lock()
+	defer wrap.Unlock()
 	_, err = m.sendOneMessage(wrap.rw)
 	return
 }

@@ -1,13 +1,11 @@
 package gortcp
 
 import (
-	"net"
-	"time"
-
 	"bytes"
 	"fmt"
-
+	"net"
 	"sync"
+	"time"
 )
 
 type Node struct {

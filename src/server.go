@@ -1,12 +1,12 @@
 package gortcp
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"net"
 	"strconv"
 	"time"
-	"fmt"
-	"errors"
 )
 
 type Server struct {
@@ -18,7 +18,7 @@ type Server struct {
 func (s *Server) Listen() {
 
 	addr, err := net.ResolveTCPAddr("tcp", s.Addr)
-	if err != nil{
+	if err != nil {
 		logger.Panic(err)
 	}
 	server, err := net.ListenTCP("tcp4", addr)
@@ -40,7 +40,7 @@ func (s *Server) Listen() {
 }
 
 // send node list info
-func (s *Server) listNode( wrap *MessageWrap) {
+func (s *Server) listNode(wrap *MessageWrap) {
 	msg := &Message{msgType: listNodeResultMessage, content: s.Pool.Bytes()}
 	wrap.SendOneMessage(msg)
 }
@@ -59,26 +59,32 @@ func (s *Server) forward(n *Node) {
 	<-done
 }
 
-func (s *Server)handlerClientMessage(node *Node){
-	wrap := &MessageWrap{rw : node.n1}
-	for{
-		m, err:= wrap.ReadOneMessage()
-		if err != nil{
+func (s *Server) handlerClientMessage(node *Node) {
+	w1 := &MessageWrap{rw: node.n1}
+	w2 := &MessageWrap{}
+	for {
+		m, err := w1.ReadOneMessage()
+		if err != nil {
 			return
 		}
-		if node.n2 != nil{
-			w := &MessageWrap{rw: node.n2}
-			w.SendOneMessage(m)
+		if node.n2 != nil {
+			w2.rw = node.n2
+			w2.SendOneMessage(m)
 		}
 
 	}
 }
 
-func (s *Server) writeErrorMessage(wrap *MessageWrap, err error){
-	str := fmt.Sprintf("SERVER ERROR: %s", err.Error())
+func (s *Server) writeErrorMessage(wrap *MessageWrap, err error) {
+	str := fmt.Sprintf("SERVER ERROR: %s\n", err.Error())
 	msg := &Message{msgType: errorMessage, content: []byte(str)}
 	wrap.SendOneMessage(msg)
 
+}
+
+func (s *Server) writeMatchOkMessage(wrap *MessageWrap) {
+	msg := &Message{msgType: matchOKMessage}
+	wrap.SendOneMessage(msg)
 }
 
 func (s *Server) handler(conn *net.TCPConn) {
@@ -96,7 +102,8 @@ func (s *Server) handler(conn *net.TCPConn) {
 		s.handlerClientMessage(node)
 	} else if m.msgType == authMessage {
 		if string(m.content) != s.Auth {
-			logger.Debugf("auth error.expected:%s, actual:%s", s.Auth, m.content)
+			logger.Debugf("auth error expected %s, actual: %s", s.Auth, m.content)
+			s.writeErrorMessage(wrap, errors.New("auth error"))
 			return
 		}
 		m, err := wrap.ReadOneMessage()
@@ -116,12 +123,14 @@ func (s *Server) handler(conn *net.TCPConn) {
 			}
 			node := s.Pool.getNode(uint32(i))
 			if node == nil {
-				errStr := fmt.Sprintf("id:%s is not found in the server", m.content)
+				errStr := fmt.Sprintf("conn id %s is not found in the server", m.content)
 				logger.Error(errStr)
 				s.writeErrorMessage(wrap, errors.New(errStr))
 				return
 			}
 			node.n2 = conn
+			logger.Debugf("%s match %s", node.n2.RemoteAddr(), node.n1.RemoteAddr())
+			s.writeMatchOkMessage(wrap)
 			io.Copy(node.n1, node.n2)
 			//s.forward(node)
 			node.n2 = nil
