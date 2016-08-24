@@ -54,9 +54,9 @@ func (m *NodeMap) getNode(id uint32) (n *Node) {
 func (m *NodeMap) Bytes() []byte {
 
 	buf := new(bytes.Buffer)
-	buf.WriteString("ID   ADDRESS\n")
+	buf.WriteString(fmt.Sprintf("|%-10s|%-45s\n", "ID", "ADDRESS"))
 	for k, v := range m.pool {
-		str := fmt.Sprintf("%d   %s\n", k, v.n1.RemoteAddr())
+		str := fmt.Sprintf("|%-10d|%-45s\n", k, v.n1.RemoteAddr())
 		buf.WriteString(str)
 	}
 	return buf.Bytes()

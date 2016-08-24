@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"time"
 )
 
 type Control struct {
@@ -114,8 +115,9 @@ func (c *Control) upload(srcPath, dstPath string) {
 	}
 
 	m.msgType = uploadFileMessage
-	buf := make([]byte, 1024*64)
+	buf := make([]byte, 1024*4)
 	size := 0
+	start := time.Now()
 	for {
 		n, err := f.Read(buf)
 		if err != nil && err != io.EOF {
@@ -130,7 +132,9 @@ func (c *Control) upload(srcPath, dstPath string) {
 			logger.Panic(err)
 		}
 		size += n
-		os.Stdout.WriteString(fmt.Sprintf("\rsend %d KB", size/1024))
+		spendTime := time.Since(start)
+		speed := time.Second.Nanoseconds()*int64(size)/1024/spendTime.Nanoseconds()
+		os.Stdout.WriteString(fmt.Sprintf("\rsend: %dKB | time: %.2fS | speed: %dKB/S", size/1024, spendTime.Seconds(), speed))
 	}
 	m.msgType = uploadDoneMessage
 	m.content = []byte{}
