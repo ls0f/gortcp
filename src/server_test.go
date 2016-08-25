@@ -20,3 +20,15 @@ func TestServer_Listen(t *testing.T) {
 	s.Listen()
 
 }
+
+func TestServer_Listen2(t *testing.T) {
+	s := Server{Addr: ":12345", Auth:"123456"}
+	go s.Listen()
+	time.Sleep(500*time.Millisecond)
+	c := Client{Addr:":12345"}
+	go c.Connect()
+	time.Sleep(500*time.Millisecond)
+	assert.Equal(t, len(s.Pool.pool), 1)
+	n := s.Pool.getNode(1)
+	assert.True(t, n != nil)
+}
