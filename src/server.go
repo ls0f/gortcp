@@ -23,7 +23,7 @@ func (s *Server) Listen() {
 	}
 	server, err := net.ListenTCP("tcp4", addr)
 	if err != nil {
-		logger.Error(err.Error())
+		logger.Panic(err.Error())
 	}
 	logger.Infof("[tcp] listen on %v", addr)
 	s.Pool = new(NodeMap)
