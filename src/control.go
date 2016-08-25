@@ -133,8 +133,8 @@ func (c *Control) upload(srcPath, dstPath string) {
 		}
 		size += n
 		spendTime := time.Since(start)
-		speed := time.Second.Nanoseconds()*int64(size)/1024/spendTime.Nanoseconds()
-		os.Stdout.WriteString(fmt.Sprintf("\rsend: %dKB | time: %.2fS | speed: %dKB/S", size/1024, spendTime.Seconds(), speed))
+		speed := time.Second.Nanoseconds() * int64(size) / 1024 / spendTime.Nanoseconds()
+		os.Stdout.WriteString(fmt.Sprintf("send: %dKB | time: %.2fS | speed: %dKB/S\r", size/1024, spendTime.Seconds(), speed))
 	}
 	m.msgType = uploadDoneMessage
 	m.content = []byte{}
