@@ -12,10 +12,10 @@ import (
 const CommandTimeOut = 15
 
 type Client struct {
-	Addr     string
-	wrap     *MessageWrap
-	FilePath string
-	f        *os.File
+	Addr string
+	wrap *MessageWrap
+	fm   *FileMsg
+	f    *os.File
 }
 
 func (c *Client) writeErrorMessage(err error) {
@@ -42,23 +42,27 @@ func (c *Client) handlerMessage(m *Message) {
 }
 
 func (c *Client) handlerFileInfo(p []byte) {
-	c.FilePath = string(p)
+	var err error
+	if c.fm, err = DecodeFileMsg(p); err != nil {
+		c.writeErrorMessage(err)
+		return
+	}
 	if c.f != nil {
 		c.f.Close()
 		c.f = nil
 	}
-	logger.Debugf("receive file info msg, path is %s", c.FilePath)
+	logger.Debugf("receive file info msg, path is %s", c.fm.dstPath)
 
 }
 
 func (c *Client) handlerFile(body []byte) {
-	if c.FilePath == "" {
-		err := errors.New("file path is nil")
+	if c.fm == nil {
+		err := errors.New("FileMsg is nil, do you send a file info msg?")
 		c.writeErrorMessage(err)
 		return
 	}
 	if c.f == nil {
-		f, err := os.Create(c.FilePath)
+		f, err := os.Create(c.fm.dstPath)
 		if err != nil {
 			c.writeErrorMessage(err)
 			return
@@ -74,10 +78,23 @@ func (c *Client) handlerFile(body []byte) {
 }
 
 func (c *Client) receiveFileComplete() {
-	m := &Message{msgType: replyUploadDoneMessage, content: []byte("CLIENT: receive complete\n")}
-	c.wrap.SendOneMessage(m)
-	c.FilePath = ""
+	c.f.Sync()
 	c.f.Close()
+	defer func() {
+		c.fm = nil
+	}()
+
+	md5, err := MD5sum(c.fm.dstPath)
+	if err != nil {
+		c.writeErrorMessage(err)
+		return
+	}
+	if md5 != c.fm.md5 {
+		err = errors.New(fmt.Sprintf("md5 verify not passed, expectd %s actual %s", c.fm.md5, md5))
+		return
+	}
+	m := &Message{msgType: replyUploadDoneMessage, content: []byte("CLIENT: receive complete, md5 verify passed\n")}
+	c.wrap.SendOneMessage(m)
 }
 
 func (c *Client) handlerCommand(cmd []byte) {

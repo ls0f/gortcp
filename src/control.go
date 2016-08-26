@@ -109,7 +109,12 @@ func (c *Control) upload(srcPath, dstPath string) {
 	}
 	defer f.Close()
 
-	m := &Message{msgType: fileInfoMessage, content: []byte(dstPath)}
+	fm := &FileMsg{dstPath: dstPath}
+	content, err := fm.Bytes(srcPath)
+	if err != nil {
+		log.Panic(err)
+	}
+	m := &Message{msgType: fileInfoMessage, content: content}
 	if err = c.wrap.SendOneMessage(m); err != nil {
 		logger.Panic(err)
 	}
