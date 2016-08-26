@@ -35,6 +35,8 @@ func (c *Client) handlerMessage(m *Message) {
 		c.handlerFile(m.content)
 	case uploadDoneMessage:
 		c.receiveFileComplete()
+	case pingOKMessage:
+		logger.Debugf("receive ping reply message")
 	default:
 		logger.Debug(string(m.content))
 	}
@@ -135,7 +137,11 @@ func (c *Client) HandlerMessage() {
 func (c *Client) Connect() {
 
 	for {
-		conn, err := net.Dial("tcp", c.Addr)
+		addr, err := net.ResolveTCPAddr("tcp", c.Addr)
+		if err != nil {
+			logger.Panic(err)
+		}
+		conn, err := net.DialTCP("tcp", nil, addr)
 		if err != nil {
 			logger.Errorf(err.Error())
 			time.Sleep(20 * time.Second)
@@ -145,14 +151,28 @@ func (c *Client) Connect() {
 	}
 }
 
-func (c *Client) handlerConn(conn net.Conn) {
+func (c *Client) ping(){
+	go func(){
+		for{
+			if err := c.wrap.SendOneMessage(&Message{msgType:pingMessage}); err != nil{
+				return
+			}
+			time.Sleep(PingInterval*time.Second)
+		}
+	}()
+}
+
+func (c *Client) handlerConn(conn *net.TCPConn) {
 	defer conn.Close()
 	c.wrap = &MessageWrap{rw: conn}
 	msg := &Message{msgType: connectMessage, content: []byte("test")}
-	err := c.wrap.SendOneMessage(msg)
-	if err != nil {
+	if err := c.wrap.SendOneMessage(msg); err != nil {
 		return
 	}
+	if _, err := c.wrap.ReadTheSpecialTypeMessage(connectOKmessage); err != nil {
+		return
+	}
+	c.ping()
 	c.HandlerMessage()
 
 }

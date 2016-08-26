@@ -6,12 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"sync"
+	"net"
+	"time"
 )
 
 const (
 	authMessage            = 1
 	connectMessage         = 2
+	connectOKmessage       = 21
 	execCmdMessage         = 3
 	execCmdResultMessage   = 31
 	uploadFileMessage      = 4
@@ -23,6 +25,8 @@ const (
 	matchNodeMessage       = 6
 	matchOKMessage         = 61
 	errorMessage           = 7
+	pingMessage = 8
+	pingOKMessage = 9
 )
 
 type Message struct {
@@ -33,8 +37,6 @@ type Message struct {
 
 type MessageWrap struct {
 	rw io.ReadWriter
-	sync.Mutex
-	rlock sync.Mutex
 }
 
 func (m *Message) readOneMessage(r io.Reader) (err error) {
@@ -85,9 +87,10 @@ func (m *Message) sendOneMessage(w io.Writer) (n int, err error) {
 }
 
 func (wrap *MessageWrap) ReadOneMessage() (m *Message, err error) {
-	wrap.rlock.Lock()
-	defer wrap.rlock.Unlock()
 	m = &Message{}
+	if n, ok := wrap.rw.(*net.TCPConn); ok {
+		n.SetReadDeadline(time.Now().Add(time.Second * ReadTimeOut))
+	}
 	err = m.readOneMessage(wrap.rw)
 	return
 }
@@ -108,8 +111,9 @@ func (wrap *MessageWrap) ReadTheSpecialTypeMessage(msgType uint8) (m *Message, e
 }
 
 func (wrap *MessageWrap) SendOneMessage(m *Message) (err error) {
-	wrap.Lock()
-	defer wrap.Unlock()
+	if n, ok := wrap.rw.(*net.TCPConn); ok {
+		n.SetWriteDeadline(time.Now().Add(time.Second * WriteTimeOut))
+	}
 	_, err = m.sendOneMessage(wrap.rw)
 	return
 }

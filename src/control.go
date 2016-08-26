@@ -23,8 +23,12 @@ func (c *Control) auth() {
 	}
 }
 
-func (c *Control) connect() net.Conn {
-	conn, err := net.Dial("tcp", c.Addr)
+func (c *Control) connect() *net.TCPConn {
+	addr, err := net.ResolveTCPAddr("tcp", c.Addr)
+	if err != nil {
+		logger.Panic(err)
+	}
+	conn, err := net.DialTCP("tcp", nil, addr)
 	if err != nil {
 		logger.Panic(err)
 	}

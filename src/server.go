@@ -45,19 +45,6 @@ func (s *Server) listNode(wrap *MessageWrap) {
 	wrap.SendOneMessage(msg)
 }
 
-func (s *Server) forward(n *Node) {
-	done := make(chan struct{})
-	go func() {
-		_, err := io.Copy(n.n1, n.n2)
-		logger.Debug(err)
-		//n.n2.CloseWrite()
-		done <- struct{}{}
-	}()
-	_, err := io.Copy(n.n2, n.n1)
-	//n.n2.CloseRead()
-	logger.Debug(err)
-	<-done
-}
 
 func (s *Server) handlerClientMessage(node *Node) {
 	w1 := &MessageWrap{rw: node.n1}
@@ -67,6 +54,13 @@ func (s *Server) handlerClientMessage(node *Node) {
 		if err != nil {
 			return
 		}
+		if m.msgType == pingMessage{
+			node.LastHeartBeatTime = time.Now()
+			logger.Debugf("receive ping message from %s", node.n1.RemoteAddr())
+			w1.SendOneMessage(&Message{msgType: pingOKMessage})
+			continue
+		}
+		// forward
 		if node.n2 != nil {
 			w2.rw = node.n2
 			w2.SendOneMessage(m)
@@ -87,6 +81,12 @@ func (s *Server) writeMatchOkMessage(wrap *MessageWrap) {
 	wrap.SendOneMessage(msg)
 }
 
+func (s *Server) writeConnectOKMessage(wrap *MessageWrap) {
+	msg := &Message{msgType: connectOKmessage}
+	wrap.SendOneMessage(msg)
+
+}
+
 func (s *Server) handler(conn *net.TCPConn) {
 	wrap := &MessageWrap{rw: conn}
 	m, err := wrap.ReadOneMessage()
@@ -97,8 +97,7 @@ func (s *Server) handler(conn *net.TCPConn) {
 		node := &Node{n1: conn, n2: nil, ConnectTime: time.Now()}
 		id := s.Pool.addNewNode(node)
 		defer s.Pool.removeNode(id)
-		//done := make(chan bool)
-		//<-done
+		s.writeConnectOKMessage(wrap)
 		s.handlerClientMessage(node)
 	} else if m.msgType == authMessage {
 		if string(m.content) != s.Auth {
