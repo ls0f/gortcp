@@ -1,13 +1,6 @@
 #!/bin/bash
 
 
-if [ "$TRAVIS_BRANCH" = "master" ] && [ ! -z "$TRAVIS_TAG" ];then
-    echo "This will deploy!"
-  else
-    echo "This will not deploy!"
-    exit 0
-fi
-
 go get github.com/mitchellh/gox
 go get github.com/tcnksm/ghr
   

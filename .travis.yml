@@ -9,5 +9,10 @@ go:
 script:
     - go test -v -bench=. github.com/lovedboy/gortcp/src
 
-after_success:
-    - sh ./deploy.sh
+
+deploy:
+  provider: script
+  script: ./deploy.sh
+  on:
+    branch: master
+    tags: true
