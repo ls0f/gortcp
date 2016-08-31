@@ -3,21 +3,14 @@ language: go
 go:
     - 1.7
 env:
-  - "PATH=/home/travis/gopath/bin:$PATH"
+     - "PATH=/home/travis/gopath/bin:$PATH"
   
 before_install::
-
     - go get github.com/mitchellh/gox
     - go get github.com/tcnksm/ghr
 
 script:
     - go test -v -bench=. github.com/lovedboy/gortcp/src
 
-deploy:
-
-  skip_cleanup: true
-  provider: script
-  script: sh ./deploy.sh
-  on:
-    branch: master
-    tags: true
+after_success:
+    - sh ./deploy.sh
