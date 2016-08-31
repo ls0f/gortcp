@@ -3,6 +3,11 @@ language: go
 go:
     - 1.7
 
+install:
+
+    - go get github.com/mitchellh/gox
+    - go get github.com/tcnksm/ghr
+
 script:
     - go test -v -bench=. github.com/lovedboy/gortcp/src
 
