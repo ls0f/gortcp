@@ -1,8 +1,5 @@
 #!/bin/bash
 
-
-go get github.com/mitchellh/gox
-go get github.com/tcnksm/ghr
   
 cd ./cmd/server/
 gox -output "../../dist/{{.OS}}_{{.Arch}}_{{.Dir}}"
