@@ -1,14 +1,10 @@
 language: go
 
-branches:
-  only: 
-    - master
 go:
     - 1.7
 
 script:
     - go test -v -bench=. github.com/lovedboy/gortcp/src
-
 
 deploy:
   provider: script
