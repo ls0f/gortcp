@@ -7,8 +7,10 @@ script:
     - go test -v -bench=. github.com/lovedboy/gortcp/src
 
 deploy:
+
+  skip_cleanup: true
   provider: script
-  script: ./deploy.sh
+  script: sh ./deploy.sh
   on:
     branch: master
     tags: true
