@@ -18,4 +18,4 @@ cd ../../cmd/control
 gox -output "../../dist/{{.OS}}_{{.Arch}}_{{.Dir}}"
 
 cd ../../
-ghr $TRAVIS_TAG --username lovedboy --token $GITHUB_TOKEN  --replace  --debug  dist/
+ghr $TRAVIS_TAG -u lovedboy -t $GITHUB_TOKEN -r gortcp  --replace  --debug  dist/
