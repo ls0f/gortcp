@@ -1,10 +1,14 @@
-# gortcp
+# gortcp [![Build Status](https://travis-ci.org/lovedboy/gortcp.svg?branch=master)](https://travis-ci.org/lovedboy/gortcp)
 
 支持
 
 * 内网穿透，灵感来源于[rtcp](https://github.com/knownsec/rtcp)。
 * 文件上传
 * 远程命令执行
+
+# [Download](https://github.com/lovedboy/gortcp/releases/tag/v0.1)
+
+
 
 # Usage
 
