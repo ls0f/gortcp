@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -ve
 
 if [ ! -z "$TRAVIS_TAG" ];then
 	echo "the tag is $TRAVIS_TAG, will deploy...."
@@ -18,4 +18,4 @@ cd ../../cmd/control
 gox -output "../../dist/{{.OS}}_{{.Arch}}_{{.Dir}}"
 
 cd ../../
-ghr $TRAVIS_TAG -u lovedboy -t $GITHUB_TOKEN -r gortcp  --replace  --debug  dist/
+ghr -u lovedboy -t $GITHUB_TOKEN -r gortcp  --replace  --debug $TRAVIS_TAG  dist/
