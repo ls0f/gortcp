@@ -73,3 +73,20 @@ func TestControl_Forward(t *testing.T) {
 	assert.Contains(t, string(buf.Bytes()), "127.0.0.1")
 	assert.Contains(t, string(buf.Bytes()), "ADDRESS")
 }
+
+func TestControl_DownloadFile(t *testing.T) {
+	s := &Server{Addr: ":12348", Auth: "123456"}
+	go s.Listen()
+	time.Sleep(100 * time.Millisecond)
+	c := &Control{Auth: "123456", Addr: "127.0.0.1:12348"}
+	a := &Client{Addr: "127.0.0.1:12348"}
+	go a.Connect()
+	time.Sleep(100 * time.Millisecond)
+	buf := make([]byte, 10241)
+	f, _ := os.Create("/tmp/test.bin")
+	f.Write(buf)
+	c.DownloadFile("1", "/tmp/test.bin", "/tmp/test.bin2")
+	md51, _ := MD5sum("/tmp/test.bin")
+	md52, _ := MD5sum("/tmp/test.bin2")
+	assert.Equal(t, md51, md52)
+}

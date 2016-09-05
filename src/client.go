@@ -3,6 +3,7 @@ package gortcp
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"os/exec"
@@ -41,6 +42,8 @@ func (c *Client) handlerMessage(m *Message) {
 		c.handlerTunnel(m.content)
 	case tunnelForwardMessage:
 		c.forwardTunnelMsg(m.content)
+	case downloadMessage:
+		c.handlerDownload(m.content)
 	default:
 		logger.Debugf("unsupport msgType %d", m.msgType)
 	}
@@ -52,6 +55,43 @@ func (c *Client) forwardTunnelMsg(body []byte) {
 	if err != nil {
 		logger.Debug(err)
 	}
+}
+
+func (c *Client) handlerDownload(file []byte) {
+	src := string(file)
+	if s, err := os.Stat(src); err != nil || s.IsDir() {
+		if err != nil {
+			c.writeErrorMessage(err)
+		} else {
+			c.writeErrorMessage(errors.New(fmt.Sprintf("%s is a dir", s.Name())))
+		}
+		return
+	}
+	f, err := os.Open(src)
+	if err != nil {
+		c.writeErrorMessage(err)
+		return
+	}
+	defer f.Close()
+	buf := make([]byte, 1024)
+	for {
+		n, err := f.Read(buf)
+		if err != nil && err != io.EOF {
+			c.writeErrorMessage(err)
+			return
+		}
+		if err == io.EOF {
+			break
+		}
+		if err := c.wrap.SendOneMessage(&Message{msgType: uploadFileMessage, content: buf[:n]}); err != nil {
+			c.writeErrorMessage(err)
+			return
+		}
+	}
+	md5, _ := MD5sum(src)
+	c.wrap.SendOneMessage(&Message{msgType: downloadDoneMessage, content: []byte(md5)})
+
+	return
 }
 
 func (c *Client) handlerTunnel(addr []byte) {

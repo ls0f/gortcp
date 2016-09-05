@@ -13,14 +13,15 @@ func main() {
 	addr := flag.String("addr", ":33456", "forward server addr")
 	auth := flag.String("auth", "123456", "forward server auth")
 	id := flag.String("id", "", "client node id")
-	action := flag.String("action", "", "action [list|exec|upload|forward]")
+	action := flag.String("action", "", "action [list|exec|upload|download|forward]")
 	cmd := flag.String("cmd", "", "cmd, required when action is exec")
-	src := flag.String("src", "", "src path, required when action is upload")
-	dst := flag.String("dst", "", "dst path, required when action is upload")
+	src := flag.String("src", "", "src path, required when action is upload or download")
+	dst := flag.String("dst", "", "dst path, required when action is upload or download")
 	laddr := flag.String("laddr", "", "local listen addr, required when action is forward")
 	raddr := flag.String("raddr", "", "remote connet addr, required when action is forward")
 	debug := flag.Bool("debug", false, "debug mode(true or false)")
 	flag.Parse()
+
 	gortcp.InitLogger(*debug)
 	c := &gortcp.Control{Addr: *addr, Auth: *auth}
 	if *action == "list" {
@@ -38,7 +39,7 @@ func main() {
 		c.ExecCommand(*id, *cmd)
 		return
 	}
-	if *action == "upload" {
+	if *action == "upload" || *action == "download" {
 		if *id == "" {
 			log.Panic("id is required")
 		}
@@ -48,7 +49,12 @@ func main() {
 		if *dst == "" {
 			log.Panic("dst path is required")
 		}
-		c.UploadFile(*id, *src, *dst)
+		if *action == "upload" {
+
+			c.UploadFile(*id, *src, *dst)
+		} else {
+			c.DownloadFile(*id, *src, *dst)
+		}
 		return
 	}
 	if *action == "forward" {

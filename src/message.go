@@ -30,6 +30,8 @@ const (
 	tunnelMessage          = 9
 	tunnelOKMessage        = 91
 	tunnelForwardMessage   = 92
+	downloadMessage        = 10
+	downloadDoneMessage    = 101
 )
 
 type Message struct {

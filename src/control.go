@@ -26,7 +26,7 @@ func (c *Control) auth() {
 
 func (c *Control) checkError(err error) {
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "ERROR: %s", err.Error())
+		fmt.Fprintln(os.Stderr, fmt.Sprintf("ERROR: %s\n", err.Error()))
 		os.Exit(1)
 	}
 }
@@ -162,6 +162,40 @@ func (c *Control) UploadFile(id, srcPath, dstPath string) {
 	c.wrap.disableReadTimeOut = true
 	go c.upload(srcPath, dstPath)
 	c.print(os.Stdout)
+}
+
+func (c *Control) download(srcPath, dstPath string) {
+	err := c.wrap.SendOneMessage(&Message{msgType: downloadMessage, content: []byte(srcPath)})
+	c.checkError(err)
+	f, err := os.Create(dstPath)
+	c.checkError(err)
+	for {
+		m, err := c.wrap.ReadOneMessage()
+		c.checkError(err)
+		if m.msgType == uploadFileMessage {
+			f.Write(m.content)
+		} else if m.msgType == downloadDoneMessage {
+			f.Sync()
+			f.Close()
+			md5, _ := MD5sum(dstPath)
+			if md5 == string(m.content) {
+				os.Stdout.WriteString(fmt.Sprintf("save in %s, md5 verify passed\n", dstPath))
+			} else {
+				os.Stdout.WriteString(fmt.Sprintf("save in %s, md5 verify fail\n", dstPath))
+			}
+			return
+		} else {
+			c.checkError(errors.New(string(m.content)))
+			return
+		}
+	}
+}
+func (c *Control) DownloadFile(id, srcPath, dstPath string) {
+	conn := c.connect()
+	defer conn.Close()
+	c.auth()
+	c.matchNode(id)
+	c.download(srcPath, dstPath)
 }
 
 func (c *Control) listen(addr string) *net.TCPListener {
