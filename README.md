@@ -12,17 +12,19 @@
 
 # Usage
 
-* cmd/server/server.go  转发服务器
+* cmd/server/server.go  中转服务器
 * cmd/client/client.go  内网机器
 * cmd/control/control.go 控制终端
 
 
 
-## 转发服务器运行：
+## 中转服务器运行：
 
 `./server -addr :33456 -auth 123456`
 
 ## 内网机器运行：
+
+连接中转服务器
 
 `./client -addr 10.68.102.49:33456`
 
