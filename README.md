@@ -3,7 +3,7 @@
 支持
 
 * 内网穿透，灵感来源于[rtcp](https://github.com/knownsec/rtcp)。
-* 文件上传
+* 文件上传下载
 * 远程命令执行
 
 # [Download](https://github.com/lovedboy/gortcp/releases/tag/v0.1)
@@ -57,6 +57,13 @@ round-trip min/avg/max/stddev = 48.281/51.058/53.093/1.852 ms
 ⇒  ./control -addr 10.68.102.49:33456 -action upload -id 1 -src ./control -dst /tmp/test.bin
 send: 3300KB | time: 0.06S | speed: 56970KB/S
 CLIENT: receive complete, md5 verify passed
+```
+### 文件下载
+
+下载远程1号机器的/etc/passwd文件到本地的/tmp目录
+```
+⇒  ./control -addr 10.68.102.49:33456 -action download -id 1 -src /etc/passwd  -dst /tmp/passwd
+save in /tmp/passwd, md5 verify passed
 ```
 
 ### 端口转发
