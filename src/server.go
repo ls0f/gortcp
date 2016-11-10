@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -13,6 +14,7 @@ type Server struct {
 	Addr string
 	Auth string
 	Pool *NodeMap
+	sync.Mutex
 }
 
 func (s *Server) Listen() {
@@ -45,7 +47,6 @@ func (s *Server) listNode(wrap *MessageWrap) {
 	wrap.SendOneMessage(msg)
 }
 
-
 func (s *Server) handlerClientMessage(node *Node) {
 	w1 := &MessageWrap{rw: node.n1}
 	w2 := &MessageWrap{}
@@ -54,17 +55,19 @@ func (s *Server) handlerClientMessage(node *Node) {
 		if err != nil {
 			return
 		}
-		if m.msgType == pingMessage{
+		if m.msgType == pingMessage {
 			node.LastHeartBeatTime = time.Now()
 			logger.Debugf("receive ping message from %s", node.n1.RemoteAddr())
 			w1.SendOneMessage(&Message{msgType: pingOKMessage})
 			continue
 		}
 		// forward
+		node.Lock()
 		if node.n2 != nil {
 			w2.rw = node.n2
 			w2.SendOneMessage(m)
 		}
+		node.Unlock()
 
 	}
 }
@@ -120,19 +123,21 @@ func (s *Server) handler(conn *net.TCPConn) {
 				s.writeErrorMessage(wrap, err)
 				return
 			}
+			s.Lock()
 			node := s.Pool.getNode(uint32(i))
 			if node == nil {
 				errStr := fmt.Sprintf("conn id %s is not found in the server", m.content)
 				logger.Error(errStr)
 				s.writeErrorMessage(wrap, errors.New(errStr))
+				s.Unlock()
 				return
 			}
-			node.n2 = conn
+			node.setN2(conn)
+			s.Unlock()
 			logger.Debugf("%s match %s", node.n2.RemoteAddr(), node.n1.RemoteAddr())
 			s.writeMatchOkMessage(wrap)
 			io.Copy(node.n1, node.n2)
-			//s.forward(node)
-			node.n2 = nil
+			node.setN2(nil)
 			return
 		}
 	}

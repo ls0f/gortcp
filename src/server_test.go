@@ -20,6 +20,7 @@ type test struct {
 
 func (t *test) runServer() {
 	t.Lock()
+	defer t.Unlock()
 	if t.run == true {
 		return
 	}
@@ -27,7 +28,6 @@ func (t *test) runServer() {
 	go t.s.Listen()
 	time.Sleep(500 * time.Millisecond)
 	t.run = true
-	t.Unlock()
 
 }
 
@@ -41,7 +41,7 @@ func TestServer_Listen(t *testing.T) {
 		_, ok := r.(error)
 		assert.False(t, ok)
 	}()
-	go ser.runServer()
+	ser.runServer()
 	s := Server{Addr: ":12345", Auth: "123456"}
 	time.Sleep(500 * time.Millisecond)
 	s.Listen()
@@ -49,7 +49,7 @@ func TestServer_Listen(t *testing.T) {
 }
 
 func TestServer_Listen2(t *testing.T) {
-	go ser.runServer()
+	ser.runServer()
 	time.Sleep(500 * time.Millisecond)
 	c := Client{Addr: "127.0.0.1:12345"}
 	go c.Connect()
@@ -60,7 +60,7 @@ func TestServer_Listen2(t *testing.T) {
 }
 
 func TestServer_ListNode(t *testing.T) {
-	go ser.runServer()
+	ser.runServer()
 	time.Sleep(500 * time.Millisecond)
 	c := Client{Addr: "127.0.0.1:12345"}
 	go c.Connect()
@@ -92,7 +92,7 @@ func TestServer_WriteMatchOkMessage(t *testing.T) {
 }
 
 func TestServer_ConnetAuthError(t *testing.T) {
-	go ser.runServer()
+	ser.runServer()
 	conn, err := net.Dial("tcp", "127.0.0.1:12345")
 	assert.NoError(t, err)
 	wrap := &MessageWrap{rw: conn}
@@ -105,7 +105,7 @@ func TestServer_ConnetAuthError(t *testing.T) {
 }
 
 func TestServer_MatchError(t *testing.T) {
-	go ser.runServer()
+	ser.runServer()
 	conn, err := net.Dial("tcp", "127.0.0.1:12345")
 	assert.NoError(t, err)
 	wrap := &MessageWrap{rw: conn}
@@ -120,7 +120,7 @@ func TestServer_MatchError(t *testing.T) {
 }
 
 func TestServer_IDNotFoundError(t *testing.T) {
-	go ser.runServer()
+	ser.runServer()
 	conn, err := net.Dial("tcp", "127.0.0.1:12345")
 	assert.NoError(t, err)
 	wrap := &MessageWrap{rw: conn}

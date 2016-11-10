@@ -23,8 +23,8 @@ func (n *Node) updateLastHeartBeat() {
 
 func (n *Node) setN2(conn *net.TCPConn) {
 	n.Lock()
+	defer n.Unlock()
 	n.n2 = conn
-	defer n.Lock()
 
 }
 

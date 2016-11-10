@@ -2,7 +2,7 @@ package gortcp
 
 const (
 	// tcp read timeout
-	ReadTimeOut  = 60
+	ReadTimeOut = 60
 	// tcp write timeout
 	WriteTimeOut = 60
 	// ping message

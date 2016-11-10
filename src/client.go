@@ -151,13 +151,13 @@ func (c *Client) Connect() {
 	}
 }
 
-func (c *Client) ping(){
-	go func(){
-		for{
-			if err := c.wrap.SendOneMessage(&Message{msgType:pingMessage}); err != nil{
+func (c *Client) ping() {
+	go func() {
+		for {
+			if err := c.wrap.SendOneMessage(&Message{msgType: pingMessage}); err != nil {
 				return
 			}
-			time.Sleep(PingInterval*time.Second)
+			time.Sleep(PingInterval * time.Second)
 		}
 	}()
 }

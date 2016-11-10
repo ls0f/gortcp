@@ -25,8 +25,8 @@ const (
 	matchNodeMessage       = 6
 	matchOKMessage         = 61
 	errorMessage           = 7
-	pingMessage = 8
-	pingOKMessage = 9
+	pingMessage            = 8
+	pingOKMessage          = 9
 )
 
 type Message struct {

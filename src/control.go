@@ -19,18 +19,18 @@ func (c *Control) auth() {
 	msg := &Message{msgType: authMessage, content: []byte(c.Auth)}
 	err := c.wrap.SendOneMessage(msg)
 	if err != nil {
-		logger.Panic(err)
+		logger.Fatal(err)
 	}
 }
 
 func (c *Control) connect() *net.TCPConn {
 	addr, err := net.ResolveTCPAddr("tcp", c.Addr)
 	if err != nil {
-		logger.Panic(err)
+		logger.Fatal(err)
 	}
 	conn, err := net.DialTCP("tcp", nil, addr)
 	if err != nil {
-		logger.Panic(err)
+		logger.Fatal(err)
 	}
 	c.wrap = &MessageWrap{rw: conn}
 	return conn
@@ -41,23 +41,20 @@ func (c *Control) print(w io.Writer) {
 
 	rm, err := c.wrap.ReadOneMessage()
 	if err != nil {
-		logger.Panic(err)
+		logger.Fatal(err)
 	}
-	//os.Stdout.Write([]byte("#######################\n"))
 	w.Write(rm.content)
-	//os.Stdout.Write([]byte("\n"))
-	//os.Stdout.Write([]byte("#######################\n"))
 }
 
 func (c *Control) matchNode(id string) {
 	msg := &Message{msgType: matchNodeMessage, content: []byte(id)}
 	err := c.wrap.SendOneMessage(msg)
 	if err != nil {
-		logger.Panic(err)
+		logger.Fatal(err)
 	}
 	m, err := c.wrap.ReadOneMessage()
 	if err != nil {
-		log.Panic(err)
+		log.Fatal(err)
 	}
 	if m.msgType != matchOKMessage {
 		os.Stdout.Write(m.content)
@@ -70,7 +67,7 @@ func (c *Control) exec(cmd string) {
 	msg := &Message{msgType: execCmdMessage, content: []byte(cmd)}
 	err := c.wrap.SendOneMessage(msg)
 	if err != nil {
-		logger.Panic(err)
+		logger.Fatal(err)
 	}
 }
 
@@ -80,7 +77,7 @@ func (c *Control) ListNode() {
 	c.auth()
 	msg := &Message{msgType: listNodeMessage}
 	if err := c.wrap.SendOneMessage(msg); err != nil {
-		logger.Panic(err)
+		logger.Fatal(err)
 	}
 	c.print(os.Stdout)
 }
@@ -99,28 +96,28 @@ func (c *Control) checkFile(file string) {
 
 	s, err := os.Stat(file)
 	if err != nil {
-		logger.Panic(err)
+		logger.Fatal(err)
 	}
 	if s.IsDir() {
-		logger.Panic("%s is not a file", file)
+		logger.Fatal("%s is not a file", file)
 	}
 }
 
 func (c *Control) upload(srcPath, dstPath string) {
 	f, err := os.Open(srcPath)
 	if err != nil {
-		logger.Panic(err)
+		logger.Fatal(err)
 	}
 	defer f.Close()
 
 	fm := &FileMsg{dstPath: dstPath}
 	content, err := fm.Bytes(srcPath)
 	if err != nil {
-		log.Panic(err)
+		log.Fatal(err)
 	}
 	m := &Message{msgType: fileInfoMessage, content: content}
 	if err = c.wrap.SendOneMessage(m); err != nil {
-		logger.Panic(err)
+		logger.Fatal(err)
 	}
 
 	m.msgType = uploadFileMessage
@@ -130,7 +127,7 @@ func (c *Control) upload(srcPath, dstPath string) {
 	for {
 		n, err := f.Read(buf)
 		if err != nil && err != io.EOF {
-			logger.Panic(err)
+			logger.Fatal(err)
 		}
 		if err == io.EOF {
 			os.Stdout.WriteString("\n")
@@ -138,7 +135,7 @@ func (c *Control) upload(srcPath, dstPath string) {
 		}
 		m.content = buf[:n]
 		if err := c.wrap.SendOneMessage(m); err != nil {
-			logger.Panic(err)
+			logger.Fatal(err)
 		}
 		size += n
 		spendTime := time.Since(start)
@@ -149,7 +146,7 @@ func (c *Control) upload(srcPath, dstPath string) {
 	m.content = []byte{}
 	err = c.wrap.SendOneMessage(m)
 	if err != nil {
-		logger.Panic(err)
+		logger.Fatal(err)
 	}
 }
 
