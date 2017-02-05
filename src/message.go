@@ -96,10 +96,9 @@ func (m *Message) sendOneMessage(w io.Writer) (n int, err error) {
 func (wrap *MessageWrap) ReadOneMessage() (m *Message, err error) {
 	m = &Message{}
 	if n, ok := wrap.rw.(*net.TCPConn); ok {
-		if wrap.disableReadTimeOut {
-			n.SetReadDeadline(time.Time{})
-		} else {
+		if !wrap.disableReadTimeOut {
 			n.SetReadDeadline(time.Now().Add(time.Second * ReadTimeOut))
+			defer n.SetReadDeadline(time.Time{})
 		}
 	}
 	err = m.readOneMessage(wrap.rw)
@@ -123,10 +122,9 @@ func (wrap *MessageWrap) ReadTheSpecialTypeMessage(msgType uint8) (m *Message, e
 
 func (wrap *MessageWrap) SendOneMessage(m *Message) (err error) {
 	if n, ok := wrap.rw.(*net.TCPConn); ok {
-		if wrap.disableWriteTimeOut {
-			n.SetWriteDeadline(time.Time{})
-		} else {
+		if !wrap.disableWriteTimeOut {
 			n.SetWriteDeadline(time.Now().Add(time.Second * WriteTimeOut))
+			defer n.SetWriteDeadline(time.Time{})
 		}
 	}
 	_, err = m.sendOneMessage(wrap.rw)
