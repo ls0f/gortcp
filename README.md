@@ -6,7 +6,7 @@
 * 文件上传下载
 * 远程命令执行
 
-# [Download](https://github.com/lovedboy/gortcp/releases/tag/v0.1)
+# [Download](https://github.com/lovedboy/gortcp/releases)
 
 
 
