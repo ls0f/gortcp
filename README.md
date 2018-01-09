@@ -1,3 +1,7 @@
+# WARNING
+
+deprecated !!!
+
 # gortcp [![Build Status](https://travis-ci.org/lovedboy/gortcp.svg?branch=master)](https://travis-ci.org/lovedboy/gortcp)
 
 支持
